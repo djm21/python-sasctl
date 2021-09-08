@@ -6,3 +6,6 @@ from .writeJSONFiles import JSONFiles
 from .zipModel import ZipModel
 from .writeScoreCode import ScoreCode
 from .importModel import ImportModel
+
+from warnings import warn
+warn('The sasctl.pzmm module has been deprecated and will be removed in a future release.')
