@@ -14,6 +14,7 @@ from scipy.stats import kendalltau, gamma
 import types
 import pickle
 import pickletools
+import os
 from pipreqs import pipreqs
 
 # %%
@@ -893,12 +894,13 @@ class JSONFiles:
         return conversion
 
     def get_imports(self):
-        """[summary]
+        """
+        Gets the Python modules from the current scope's global variables.  
 
         Yields
         -------
-        [type]
-            [description]
+        str
+            Name of the package that is generated.
         """
 
         for name, val in globals().items():
@@ -909,31 +911,44 @@ class JSONFiles:
             elif isinstance(val, type):
                 name = val.__module__.split(".")[0]
                 yield name
-
+                
     def get_pickle_file(self, pPath):
-        """[summary]
+        """
+        Given a file path, retrieve the pickle file(s).
 
         Parameters
         ----------
-        pPath : [type]
-            [description]
+        pPath : str
+            File location for the input pickle file. Default is the current
+            working directory.
+        
+        Returns
+        -------
+        list
+            A list of pickle files.
         """
+        
         fileNames = []
         fileNames.extend(sorted(Path(pPath).glob("*.pickle")))
+        return fileNames
 
     def get_modules_from_pickle_file(self, pickle_file):
-        """[summary]
+        """
+        Reads the pickled byte stream from a file object, serializes the pickled byte 
+        stream as a bytes object, and inspects the bytes object for all Python modules 
+        and aggregates them in a set.
 
         Parameters
         ----------
-        pickle_file : [type]
-            [description]
+        pickle_file : str
+            The file where you stored pickle data.
 
         Returns
         -------
-        [type]
-            [description]
+        set
+            A set of modules obtained from the pickle stream.
         """
+
         with (open(pickle_file, "rb")) as openfile:
             obj = pickle.load(openfile)
             dumps = pickle.dumps(obj)
@@ -942,19 +957,20 @@ class JSONFiles:
         return modules
 
     def createRequirementsJSON(self, jPath=Path.cwd()):
-        """[summary]
+        """
+        Searches the root of the project for all Python modules and writes them to a requirements.json file.
 
         Parameters
         ----------
-        jPath : [type], optional
-            [description], by default Path.cwd()
+        jPath : str, optional
+            The path to a Python project, by default Path.cwd().
         """
 
-        imports = list(set(self.get_imports()))
+        # imports = list(set(self.get_imports()))
 
-        with open("./imports.py", "w") as file:
-            for item in imports:
-                file.write("import %s\n" % item)
+        # with open(os.path.join(jPath, "imports.py"), "w") as file:
+        #     for item in imports:
+        #         file.write("import %s\n" % item)
 
         pipreqs.init(
             {
@@ -971,17 +987,18 @@ class JSONFiles:
         )
 
         module_version_map = {}
-        pickle_file = self.get_pickle_file(jPath)
-        filename = "./requirements.txt"
-        with open(filename, "r") as f:
+        pickle_files = self.get_pickle_file(jPath)
+        requirements_txt_file = os.path.join(jPath, "requirements.txt")
+        with open(requirements_txt_file, "r") as f:
             modules_requirements_txt = set()
-            modules_pickle = self.get_modules_from_pickle_file(pickle_file)
-            for line in f:
-                module_parts = line.rstrip().split("==")
-                module = module_parts[0]
-                version = module_parts[1]
-                module_version_map[module] = version
-                modules_requirements_txt.add(module)
+            for pickle_file in pickle_files: 
+                modules_pickle = self.get_modules_from_pickle_file(pickle_file)
+                for line in f:
+                    module_parts = line.rstrip().split("==")
+                    module = module_parts[0]
+                    version = module_parts[1]
+                    module_version_map[module] = version
+                    modules_requirements_txt.add(module)
             pip_name_list = list(modules_requirements_txt.union(modules_pickle))
 
         for item in pip_name_list:
@@ -1005,23 +1022,28 @@ class JSONFiles:
             ],
             indent=4,
         )
-        with open("./requirements.json", "w") as file:
+        with open(os.path.join(jPath, "requirements.json"), "w") as file:
             print(j, file=file)
+        
+        # Delete requirements.txt file after requirements.json has been written.
+        os.remove(requirements_txt_file)
 
     def get_names(self, stream):
-        """Generates (module, qualname) tuples from a pickle stream
+        """
+        Generates (module, class_name) tuples from a pickle stream. Extracts all class names referenced by GLOBAL and STACK_GLOBAL opcodes.
 
         Credit: https://stackoverflow.com/questions/64850179/inspecting-a-pickle-dump-for-dependencies
+        More information here: https://github.com/python/cpython/blob/main/Lib/pickletools.py
 
         Parameters
         ----------
-        stream : [type]
-            [description]
+        stream : bytes or str
+            A file like object or string containing the pickle.
 
         Yields
         -------
-        [type]
-            [description]
+        tuple
+            Generated (module, class_name) tuples.
         """
 
         stack, markstack, memo = [], [], []
@@ -1066,3 +1088,4 @@ class JSONFiles:
                 stack.append(arg)
             else:
                 stack.extend(after)
+
