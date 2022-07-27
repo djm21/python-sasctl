@@ -15,10 +15,10 @@ import types
 import pickle
 import pickletools
 import os
-from pipreqs import pipreqs
 
 # %%
 class JSONFiles:
+    @classmethod
     def writeVarJSON(self, inputData, isInput=True, jPath=Path.cwd()):
         """
         Writes a variable descriptor JSON file for input or output variables,
@@ -57,18 +57,7 @@ class JSONFiles:
                         isStr = True
                     else:
                         isStr = False
-
-        # loop through all predict variables to determine their name, length,
-        # type, and level; append each to outputJSON
-        for name in predictNames:
-            if isSeries:
-                predict = inputDF
-            else:
-                predict = inputDF[name]
-            firstRow = predict.loc[predict.first_valid_index()]
-            dType = predict.dtypes.name
-            isStr = type(firstRow) is str
-
+                        
             if isStr:
                 outputLevel = "nominal"
                 outputType = "string"
@@ -138,6 +127,7 @@ class JSONFiles:
             )
         )
 
+    @classmethod
     def writeModelPropertiesJSON(
         self,
         modelName,
@@ -257,6 +247,7 @@ class JSONFiles:
             )
         )
 
+    @classmethod
     def writeFileMetadataJSON(self, modelPrefix, jPath=Path.cwd(), isH2OModel=False):
         """
         Writes a file metadata JSON file pointing to all relevant files.
@@ -310,6 +301,7 @@ class JSONFiles:
             )
         )
 
+    @classmethod
     def writeBaseFitStat(
         self, csvPath=None, jPath=Path.cwd(), userInput=False, tupleList=None
     ):
@@ -443,6 +435,7 @@ class JSONFiles:
             )
         )
 
+    @classmethod
     def calculateFitStat(
         self, validateData=None, trainData=None, testData=None, jPath=Path.cwd()
     ):
@@ -583,6 +576,7 @@ class JSONFiles:
             )
         )
 
+    @classmethod
     def generateROCLiftStat(
         self,
         targetName,
@@ -945,7 +939,7 @@ class JSONFiles:
 
         return conversion
 
-    def get_imports(self):
+    def getCurrentScopedImports(self):
         """
         Gets the Python modules from the current scope's global variables.  
 
@@ -964,7 +958,7 @@ class JSONFiles:
                 name = val.__module__.split(".")[0]
                 yield name
                 
-    def get_pickle_file(self, pPath):
+    def getPickleFile(self, pPath):
         """
         Given a file path, retrieve the pickle file(s).
 
@@ -984,7 +978,7 @@ class JSONFiles:
         fileNames.extend(sorted(Path(pPath).glob("*.pickle")))
         return fileNames
 
-    def get_modules_from_pickle_file(self, pickle_file):
+    def getDependenciesFromPickleFile(self, pickleFile):
         """
         Reads the pickled byte stream from a file object, serializes the pickled byte 
         stream as a bytes object, and inspects the bytes object for all Python modules 
@@ -1001,13 +995,14 @@ class JSONFiles:
             A set of modules obtained from the pickle stream.
         """
 
-        with (open(pickle_file, "rb")) as openfile:
+        with (open(pickleFile, "rb")) as openfile:
             obj = pickle.load(openfile)
             dumps = pickle.dumps(obj)
 
-        modules = {mod.split(".")[0] for mod, _ in self.get_names(dumps)}
+        modules = {mod.split(".")[0] for mod, _ in self.getNames(dumps)}
         return modules
 
+    @classmethod
     def createRequirementsJSON(self, jPath=Path.cwd()):
         """
         Searches the root of the project for all Python modules and writes them to a requirements.json file.
@@ -1017,26 +1012,6 @@ class JSONFiles:
         jPath : str, optional
             The path to a Python project, by default Path.cwd().
         """
-
-        # imports = list(set(self.get_imports()))
-
-        # with open(os.path.join(jPath, "imports.py"), "w") as file:
-        #     for item in imports:
-        #         file.write("import %s\n" % item)
-
-        pipreqs.init(
-            {
-                "<path>": jPath,
-                "--savepath": None,
-                "--print": False,
-                "--use-local": None,
-                "--force": True,
-                "--proxy": None,
-                "--pypi-server": None,
-                "--diff": None,
-                "--clean": None,
-            }
-        )
 
         module_version_map = {}
         pickle_files = self.get_pickle_file(jPath)
@@ -1076,13 +1051,11 @@ class JSONFiles:
         )
         with open(os.path.join(jPath, "requirements.json"), "w") as file:
             print(j, file=file)
-        
-        # Delete requirements.txt file after requirements.json has been written.
-        os.remove(requirements_txt_file)
 
-    def get_names(self, stream):
+    def getNames(self, stream):
         """
-        Generates (module, class_name) tuples from a pickle stream. Extracts all class names referenced by GLOBAL and STACK_GLOBAL opcodes.
+        Generates (module, class_name) tuples from a pickle stream. Extracts all class names referenced 
+        by GLOBAL and STACK_GLOBAL opcodes.
 
         Credit: https://stackoverflow.com/questions/64850179/inspecting-a-pickle-dump-for-dependencies
         More information here: https://github.com/python/cpython/blob/main/Lib/pickletools.py
@@ -1140,4 +1113,3 @@ class JSONFiles:
                 stack.append(arg)
             else:
                 stack.extend(after)
-
