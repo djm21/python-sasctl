@@ -106,6 +106,7 @@ class ImportModel:
         targetDF,
         predictmethod,
         metrics=["EM_EVENTPROBABILITY", "EM_CLASSIFICATION"],
+        projectVersion='Latest',
         modelFileName=None,
         pyPath=None,
         threshPrediction=None,
@@ -156,6 +157,8 @@ class ImportModel:
         metrics : string list, optional
             The scoring metrics for the model. The default is a set of two
             metrics: EM_EVENTPROBABILITY and EM_CLASSIFICATION.
+        projectVersion : string, optional
+            _description_
         modelFileName : string, optional
             Name of the model file that contains the model. By default None and assigned as
             modelPrefix + '.pickle'.
