@@ -254,7 +254,7 @@ class ModelRepository(Service):
         properties=None,
         input_variables=None,
         output_variables=None,
-        project_version="latest"
+        project_version="latest",
     ):
         """Create a model in an existing project or folder.
 
@@ -311,7 +311,7 @@ class ModelRepository(Service):
             Model output variables. By default, these are the same as the model
              project.
         projectVersion : str
-            Name of project version to import model in to. Default 
+            Name of project version to import model in to. Default
             value is "latest".
 
         Returns
@@ -373,7 +373,9 @@ class ModelRepository(Service):
         )
 
     @classmethod
-    def add_model_content(cls, model, file, name, content_type="multipart/form-data", role=None):
+    def add_model_content(
+        cls, model, file, name, content_type="multipart/form-data", role=None
+    ):
         """Add additional files to the model. Additional files can come in the form of
         a bytes-like, string, or dict object. String and dict objects will be converted to
         a bytes-like object for upload.
@@ -388,7 +390,7 @@ class ModelRepository(Service):
         name : str
             Name of the file related to the model.
         content_type : str, optional
-            An HTTP Content-Type value. Default value is multipart/form-data.            
+            An HTTP Content-Type value. Default value is multipart/form-data.
         role : str, optional
             Role of the model file, such as 'Python pickle'. Default value is None.
 
@@ -405,15 +407,15 @@ class ModelRepository(Service):
         else:
             model = cls.get_model(model)
             id_ = model["id"]
-            
+
         # Convert string file representations to bytes-like object
         if isinstance(file, str):
             file = StringIO(file)
-            content_type="multipart/form-data"
+            content_type = "multipart/form-data"
         # Convert dict file representations to bytes-like object
         elif isinstance(file, dict):
             file = StringIO(json.dumps(file))
-            content_type="multipart/form-data"
+            content_type = "multipart/form-data"
 
         files = {"files": (name, file, content_type)}
 
@@ -426,8 +428,8 @@ class ModelRepository(Service):
         # If the file already exists, a 409 error will be returned
         try:
             return cls.post(
-                "/models/{}/contents".format(id_), 
-                files=files, 
+                "/models/{}/contents".format(id_),
+                files=files,
                 params=params,
             )
         except HTTPError as err:
@@ -520,7 +522,7 @@ class ModelRepository(Service):
         description : str
             The description of the model.
         projectVersion : str
-            Name of project version to import model in to. Default 
+            Name of project version to import model in to. Default
             value is "latest".
 
         Returns
@@ -777,7 +779,7 @@ class ModelRepository(Service):
         -------
         API response
             JSON response detailing the model details
-            
+
         """
         if cls.is_uuid(model):
             id_ = model
@@ -788,17 +790,17 @@ class ModelRepository(Service):
             id_ = model["id"]
 
         return cls.get("/models/%s" % id_)
-    
+
     @classmethod
     def list_project_versions(cls, project):
-        '''_summary_
+        """_summary_
 
         Parameters
         ----------
         project : str or dict
             The name or id of the model project, or a dictionary representation
             of the model project.
-            
+
         Returns
         -------
         list of dicts
@@ -808,20 +810,27 @@ class ModelRepository(Service):
                 id : str
                 number : str
                 modified : datetime
-                
-        '''
+
+        """
         from datetime import datetime
+
         project_info = cls.get_project(project)
 
         if project_info is None:
             raise ValueError("Project `%s` could not be found." % str(project))
-        
-        projectVersions = cls.get("/projects/{}/projectVersions".format(project_info.id))
+
+        projectVersions = cls.get(
+            "/projects/{}/projectVersions".format(project_info.id)
+        )
         versionList = []
         for version in projectVersions:
-            versionDict = {"name": version.name,
-                           "id": version.id,
-                           "number": version.versionNumber,
-                           "modified": datetime.strptime(version.modifiedTimeStamp, "%Y-%m-%dT%I:%M:%S.%fZ")}
+            versionDict = {
+                "name": version.name,
+                "id": version.id,
+                "number": version.versionNumber,
+                "modified": datetime.strptime(
+                    version.modifiedTimeStamp, "%Y-%m-%dT%I:%M:%S.%fZ"
+                ),
+            }
             versionList.append(versionDict)
         return versionList
