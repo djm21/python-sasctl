@@ -314,7 +314,7 @@ def register_model(
 
             project = _create_project(project, model_props, repo_obj, invar, outvar)
 
-        model = mr.import_model_from_zip(name, project, zipfile, version=version)
+        model = mr.import_model_from_zip(name, project, zipfile, projectVersion=version)
         return model
 
     # If the model is an scikit-learn model, generate the model dictionary
